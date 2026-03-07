@@ -17,6 +17,44 @@ FastAPI application that simulates an autonomous IT infrastructure agent:
 Workflow is implemented with LangGraph in:
 `app/agent/workflow.py`
 
+### Runtime Flow
+
+```mermaid
+flowchart TD
+    A["Client / API Caller"] --> B["FastAPI `/agent/run`"]
+    B --> C["InfraOpsWorkflow (LangGraph)"]
+
+    C --> D["Monitor Node"]
+    D --> D1["MonitoringService<br/>- read metrics<br/>- detect anomalies"]
+    D --> D2["LogService<br/>- read logs<br/>- select evidence"]
+
+    D --> E["Diagnose Node"]
+    E --> E1["Reasoner<br/>- rule-based RCA<br/>- optional OpenAI RCA"]
+
+    E --> F["Plan Node"]
+    F --> F1["PlannerAgent<br/>- create action plan"]
+
+    F --> G["Execute Node"]
+    G --> G1["ExecutorAgent (allowlist)"]
+    G1 --> H1["cleanup_disk.sh"]
+    G1 --> H2["reduce_cpu.sh"]
+
+    G --> I["Verify Node"]
+    I --> I1["VerifierAgent<br/>- compare post-metrics vs threshold"]
+
+    I --> J["Incident Result JSON"]
+    J --> A
+```
+
+### Component Communication
+
+1. `FastAPI` receives incident payload and calls `InfraOpsWorkflow.run()`.
+2. `MonitoringService` and `LogService` provide metrics/log evidence for anomaly detection.
+3. `Reasoner` generates root-cause analysis (heuristic or OpenAI if key is set).
+4. `PlannerAgent` converts diagnosis into executable shell steps.
+5. `ExecutorAgent` runs only allowlisted scripts for safety.
+6. `VerifierAgent` validates if metrics returned below threshold and sends final status.
+
 ## Quickstart
 
 ```bash
@@ -51,3 +89,18 @@ export OPENAI_API_KEY=your_key_here
 ```bash
 pytest -q
 ```
+
+## Next Roadmap
+
+- **Roadmap 1 - Real observability integration**
+  Replace sample files with Prometheus query API and log backends (Grafana Loki/Elastic).
+- **Roadmap 2 - Smarter RCA**
+  Add context windowing, incident history, and confidence scoring calibration.
+- **Roadmap 3 - Automation safety**
+  Add dry-run mode, approval gates, rollback steps, and policy-based command execution.
+- **Roadmap 4 - Multi-agent specialization**
+  Split planner/executor/verifier into independently scalable workers with queue-based orchestration.
+- **Roadmap 5 - Ops dashboard**
+  Build a web UI for incident timeline, evidence trace, action logs, and verification reports.
+- **Roadmap 6 - Production readiness**
+  Add auth, audit logs, integration tests, chaos scenarios, and deployment manifests.
