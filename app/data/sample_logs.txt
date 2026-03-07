@@ -1,0 +1,7 @@
+2026-03-07T08:01:12Z api-gateway INFO requests_per_sec=310
+2026-03-07T08:01:20Z worker-3 WARN cpu load average exceeded 2.8, throttle enabled
+2026-03-07T08:01:33Z app-node-1 WARN /var/log/app/events.log reached 9.8GB
+2026-03-07T08:01:45Z kernel ERROR No space left on device while writing rotated logs
+2026-03-07T08:02:04Z node-exporter WARN disk / usage=93.7%
+2026-03-07T08:02:18Z scheduler INFO retrying failed batch job
+2026-03-07T08:02:30Z app-node-1 INFO batch complete
