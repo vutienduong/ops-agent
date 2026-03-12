@@ -103,6 +103,23 @@ the app uses deterministic rule-based diagnosis.
 export OPENAI_API_KEY=your_key_here
 ```
 
+## RCA Context & History
+
+Roadmap-2 features now included:
+- context-windowed diagnosis from recent incident history
+- confidence calibration using evidence + anomaly count + history overlap
+- incident history persistence in local JSONL store
+
+Configuration:
+
+```bash
+export RCA_CONTEXT_WINDOW=5
+export INCIDENT_HISTORY_PATH=app/data/incident_history.jsonl
+```
+
+Inspect RCA history via API:
+`GET /incidents/history?limit=20`
+
 ## Tests
 
 ```bash
@@ -116,6 +133,7 @@ pytest -q
   Current status: Prometheus + Loki integration with fallback to sample is implemented.
 - **Roadmap 2 - Smarter RCA**
   Add context windowing, incident history, and confidence scoring calibration.
+  Current status: context window + incident history + confidence calibration implemented.
 - **Roadmap 3 - Automation safety**
   Add dry-run mode, approval gates, rollback steps, and policy-based command execution.
 - **Roadmap 4 - Multi-agent specialization**

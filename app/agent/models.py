@@ -35,3 +35,11 @@ class Verification(BaseModel):
     resolved: bool
     summary: str
     checks: dict[str, str]
+
+
+class IncidentHistoryEntry(BaseModel):
+    timestamp: str
+    incident: str | None = None
+    anomaly_signals: list[str]
+    root_cause: str
+    confidence: float = Field(ge=0.0, le=1.0)

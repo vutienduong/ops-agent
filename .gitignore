@@ -2,3 +2,4 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+app/data/incident_history.jsonl

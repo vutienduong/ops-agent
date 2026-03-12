@@ -5,8 +5,16 @@ from typing import Any, TypedDict
 from langgraph.graph import END, StateGraph
 
 from app.agent.executor import ExecutorAgent
+from app.agent.history import IncidentHistoryStore
 from app.agent.logs import LogService
-from app.agent.models import Anomaly, Diagnosis, ExecutionRecord, PlanStep, Verification
+from app.agent.models import (
+    Anomaly,
+    Diagnosis,
+    ExecutionRecord,
+    IncidentHistoryEntry,
+    PlanStep,
+    Verification,
+)
 from app.agent.monitoring import MonitoringService
 from app.agent.planner import PlannerAgent
 from app.agent.reasoner import Reasoner
@@ -21,6 +29,7 @@ class AgentState(TypedDict, total=False):
     anomalies: list[Anomaly]
     logs: list[str]
     evidence: list[str]
+    history_context: list[IncidentHistoryEntry]
     diagnosis: Diagnosis
     plan: list[PlanStep]
     execution: list[ExecutionRecord]
@@ -37,6 +46,7 @@ class InfraOpsWorkflow:
         planner: PlannerAgent,
         executor: ExecutorAgent,
         verifier: VerifierAgent,
+        history_store: IncidentHistoryStore | None = None,
     ) -> None:
         self.monitoring = monitoring
         self.logs = logs
@@ -44,6 +54,7 @@ class InfraOpsWorkflow:
         self.planner = planner
         self.executor = executor
         self.verifier = verifier
+        self.history_store = history_store
         self.graph = self._build_graph()
 
     def _build_graph(self):
@@ -84,12 +95,21 @@ class InfraOpsWorkflow:
         return {"metrics": metrics, "anomalies": anomalies, "logs": logs, "evidence": evidence}
 
     def _diagnose_node(self, state: AgentState) -> AgentState:
+        history_context = self.history_store.load_recent(limit=50) if self.history_store else []
         diagnosis = self.reasoner.diagnose(
             incident=state.get("incident"),
             anomalies=state.get("anomalies", []),
             evidence=state.get("evidence", []),
+            history_context=history_context,
         )
-        return {"diagnosis": diagnosis}
+        if self.history_store:
+            self.history_store.append(
+                incident=state.get("incident"),
+                anomaly_signals=[anomaly.signal for anomaly in state.get("anomalies", [])],
+                root_cause=diagnosis.root_cause,
+                confidence=diagnosis.confidence,
+            )
+        return {"diagnosis": diagnosis, "history_context": history_context}
 
     def _plan_node(self, state: AgentState) -> AgentState:
         plan = self.planner.create_plan(
@@ -135,6 +155,7 @@ class InfraOpsWorkflow:
             "metrics": state.get("metrics", {}),
             "anomalies": [anomaly.model_dump() for anomaly in state.get("anomalies", [])],
             "evidence": state.get("evidence", []),
+            "history_context": [entry.model_dump() for entry in state.get("history_context", [])],
             "diagnosis": state["diagnosis"].model_dump() if state.get("diagnosis") else {},
             "plan": [step.model_dump() for step in state.get("plan", [])],
             "execution": [result.model_dump() for result in state.get("execution", [])],

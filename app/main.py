@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app.agent.executor import ExecutorAgent
+from app.agent.history import IncidentHistoryStore
 from app.agent.logs import LogService
 from app.agent.monitoring import MonitoringService
 from app.agent.planner import PlannerAgent
@@ -13,6 +14,7 @@ from app.schemas import RunAgentRequest
 from app.settings import get_settings
 
 settings = get_settings()
+history_store = IncidentHistoryStore(settings.incident_history_path)
 workflow = InfraOpsWorkflow(
     monitoring=MonitoringService(
         sample_metrics_path=settings.sample_metrics_path,
@@ -25,10 +27,15 @@ workflow = InfraOpsWorkflow(
         loki_url=settings.loki_url,
         loki_query=settings.loki_query,
     ),
-    reasoner=Reasoner(openai_api_key=settings.openai_api_key, model=settings.openai_model),
+    reasoner=Reasoner(
+        openai_api_key=settings.openai_api_key,
+        model=settings.openai_model,
+        context_window_size=settings.rca_context_window,
+    ),
     planner=PlannerAgent(),
     executor=ExecutorAgent(),
     verifier=VerifierAgent(),
+    history_store=history_store,
 )
 
 app = FastAPI(
@@ -52,6 +59,12 @@ def examples() -> dict[str, list[str]]:
             "Memory usage high",
         ]
     }
+
+
+@app.get("/incidents/history")
+def incident_history(limit: int = 20) -> dict[str, list[dict]]:
+    entries = history_store.load_recent(limit=max(1, min(limit, 200)))
+    return {"items": [entry.model_dump() for entry in entries]}
 
 
 @app.post("/agent/run")
