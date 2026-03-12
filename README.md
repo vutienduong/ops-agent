@@ -67,6 +67,25 @@ uvicorn app.main:app --reload
 Open API docs at:
 `http://127.0.0.1:8000/docs`
 
+## Observability Sources
+
+Default mode uses local sample files.  
+You can switch to real sources via environment variables:
+
+```bash
+# Metrics source: sample | prometheus
+export METRICS_SOURCE=prometheus
+export PROMETHEUS_URL=http://localhost:9090
+
+# Logs source: sample | loki
+export LOGS_SOURCE=loki
+export LOKI_URL=http://localhost:3100
+export LOKI_QUERY='{job="varlogs"}'
+```
+
+Fallback behavior:
+- If Prometheus/Loki is unreachable or returns empty data, app falls back to sample metrics/log files.
+
 ## Run Example
 
 ```bash
@@ -94,6 +113,7 @@ pytest -q
 
 - **Roadmap 1 - Real observability integration**
   Replace sample files with Prometheus query API and log backends (Grafana Loki/Elastic).
+  Current status: Prometheus + Loki integration with fallback to sample is implemented.
 - **Roadmap 2 - Smarter RCA**
   Add context windowing, incident history, and confidence scoring calibration.
 - **Roadmap 3 - Automation safety**

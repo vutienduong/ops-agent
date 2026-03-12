@@ -14,8 +14,17 @@ from app.settings import get_settings
 
 settings = get_settings()
 workflow = InfraOpsWorkflow(
-    monitoring=MonitoringService(settings.sample_metrics_path),
-    logs=LogService(settings.sample_logs_path),
+    monitoring=MonitoringService(
+        sample_metrics_path=settings.sample_metrics_path,
+        source=settings.metrics_source,
+        prometheus_url=settings.prometheus_url,
+    ),
+    logs=LogService(
+        sample_logs_path=settings.sample_logs_path,
+        source=settings.logs_source,
+        loki_url=settings.loki_url,
+        loki_query=settings.loki_query,
+    ),
     reasoner=Reasoner(openai_api_key=settings.openai_api_key, model=settings.openai_model),
     planner=PlannerAgent(),
     executor=ExecutorAgent(),
